@@ -1,0 +1,30 @@
+<h1>{{title}}</h1>
+<div *ngIf="showLink">
+  <button (click)="goToLink()">{{linkText}}</button>
+</div>
+<div *ngIf="!showLoading && !subtitles?.length == 0">
+  <h2>Subtitles</h2>
+  <ul class="subtitles">
+    <li *ngFor="let sub of subtitles; let i = index"
+      [class.selected]="sub === selectedSub"
+      (click)="onSelect(sub)">
+      <span class="badge">{{i + 1}}</span> {{sub.fileName}}
+    </li>
+  </ul>
+</div>
+
+<div *ngIf="showMessage">
+  <p>
+    {{message}}
+  </p>
+</div>
+<div *ngIf="showLoading" class="loader">
+</div>
+<!-- <div *ngIf="selectedSub">
+  <h2>{{selectedHero.name}} details!</h2>
+  <div><label>id: </label>{{selectedHero.id}}</div>
+  <div>
+    <label>name: </label>
+    <input [(ngModel)]="selectedHero.name" placeholder="name"/>
+  </div>
+</div> -->

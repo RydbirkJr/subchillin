@@ -1,0 +1,25 @@
+{
+    "manifest_version": 2,
+    "name": "Subchillin",
+    "short_name": "Superchillin made easier.",
+    "description": "Automatically retrieves subtitles for your favorite site. Works for both series AND movies - and inserts the subtitles directly.",
+    "version": "2.0.0",
+    "author": "Someone",
+    "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+    "permissions":
+      [ "*://superchillin.com/*",
+        "*://subscene.com/*",
+        "*://95.154.207.80/*",
+      "activeTab",
+      "tabs"],
+    "content_scripts": [
+      {
+        "matches": ["*://superchillin.com/*"],
+        "js": ["src/content.js"]
+      }],
+      "browser_action": {
+        "matches": ["*://superchillin.com/*"],
+        "default_title": "Subchillin",
+        "default_popup": "src/index.html"
+      }
+}
