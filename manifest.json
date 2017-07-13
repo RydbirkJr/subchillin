@@ -3,7 +3,7 @@
     "name": "Subchillin",
     "short_name": "Superchillin made easier.",
     "description": "Automatically retrieves subtitles for your favorite site. Works for both series AND movies - and inserts the subtitles directly.",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "author": "Someone",
     "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
     "permissions":

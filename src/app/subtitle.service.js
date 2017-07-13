@@ -23,77 +23,38 @@ var SubtitleService = (function () {
     SubtitleService.prototype.getSeriesSubtitles = function (series, season, episode, language) {
         // Step 1: create correct url
         // Step 1a: replace spaces with dash
-        var seriesMapped = series.split(' ').join('-');
+        //let seriesMapped = series.split(' ').join('-');
+        var _this = this;
         // Step 1b: Switch numbers with string representation of numbers
         var seasonNumberText = this.mapSeasonToText(season);
+        var titleMatch = series + ' - ' + seasonNumberText + ' Season';
+        console.log(titleMatch);
         // Step 1c: Create episode code
         var episodeCode = 'S' + ('00' + season).slice(-2) + 'E' + ('00' + episode).slice(-2);
-        // Step 2: Scrape site
-        var uri = BASE_URL + "subtitles/" + seriesMapped + "-" + seasonNumberText + "-season";
-        //Make request to subscene
+        //Create result observer
         var observer = new Observable_1.Observable(function (observer) {
-            $.get(uri).promise().then(function (resp) {
-                var result = Array();
-                var elements = $(resp)
-                    .find('.a1')
-                    .map(function (index, elem) { return result.push(
-                //get path
-                new subtitle_1.Subtitle($(elem.children).attr('href'), 
-                //get language
-                $($(elem.children).children()).last().text(), 
-                //get file name
-                $($(elem.children).children()).first().text())); });
-                //Filter out wrong language and/or wrong episodes
-                result = result.filter(function (elem) {
-                    return elem.fileName.indexOf(episodeCode) != -1
-                        && elem.language.indexOf(language) != -1;
-                });
-                //Wrap result
-                var wrapper = new result_wrapper_1.ResultWrapper(series + ' ' + episodeCode, uri, result);
-                //Complete observer
-                observer.next(wrapper);
+            _this.findSubtitles(series, titleMatch, language).subscribe(function (data) {
+                data.subtitles = data
+                    .subtitles
+                    .filter(function (elem) { return elem.fileName.indexOf(episodeCode) != -1; });
+                observer.next(data);
                 observer.complete();
-            }).fail(function (e) { observer.error({ message: uri }); });
+            }, function (err) {
+                observer.error(err);
+            });
         });
         return observer;
     };
     SubtitleService.prototype.getMovieSubtitles = function (movie, language) {
-        //Prepare title for search
-        var uri = BASE_URL + "subtitles/title?q=" + movie;
+        var _this = this;
         //Create result observer
         var observer = new Observable_1.Observable(function (observer) {
-            $.get(uri).promise().then(function (resp) {
-                var result = $(resp)
-                    .find('.title')
-                    .find('a')
-                    .filter(function (index, elem) { return elem.innerText.indexOf(movie) != -1; });
-                if (result.length == 0) {
-                    observer.error({ message: uri });
-                    return;
-                }
-                uri = BASE_URL + result.first().attr('href');
-                $.get(uri).promise().then(function (resp) {
-                    var result = Array();
-                    var elements = $(resp)
-                        .find('.a1')
-                        .map(function (index, elem) { return result.push(
-                    //get path
-                    new subtitle_1.Subtitle($(elem.children).attr('href'), 
-                    //get language
-                    $($(elem.children).children()).last().text(), 
-                    //get file name
-                    $($(elem.children).children()).first().text())); });
-                    //Filter out wrong language and/or wrong episodes
-                    result = result.filter(function (elem) {
-                        return elem.language.indexOf(language) != -1;
-                    });
-                    //Wrap result
-                    var wrapper = new result_wrapper_1.ResultWrapper(movie, uri, result);
-                    //Complete observer
-                    observer.next(wrapper);
-                    observer.complete();
-                }).fail(function (e) { observer.error({ message: uri }); });
-            }).fail(function (e) { observer.error({ message: uri }); });
+            _this.findSubtitles(movie, movie, language).subscribe(function (data) {
+                observer.next(data);
+                observer.complete();
+            }, function (err) {
+                observer.error(err);
+            });
         });
         return observer;
     };
@@ -137,27 +98,68 @@ var SubtitleService = (function () {
         });
         return observer;
     };
+    SubtitleService.prototype.findSubtitles = function (title, titleMatch, language) {
+        var uri = BASE_URL + "subtitles/title?q=" + title;
+        //Create result observer
+        var observer = new Observable_1.Observable(function (observer) {
+            $.get(uri).promise().then(function (resp) {
+                console.log(uri);
+                var result = $(resp)
+                    .find('.title')
+                    .find('a')
+                    .filter(function (index, elem) { return elem.innerText.indexOf(titleMatch) != -1; });
+                if (result.length == 0) {
+                    observer.error({ message: uri });
+                    return;
+                }
+                uri = BASE_URL + result.first().attr('href');
+                console.log(uri);
+                $.get(uri).promise().then(function (resp) {
+                    var result = Array();
+                    var elements = $(resp)
+                        .find('.a1')
+                        .map(function (index, elem) { return result.push(
+                    //get path
+                    new subtitle_1.Subtitle($(elem.children).attr('href'), 
+                    //get language
+                    $($(elem.children).children()).last().text(), 
+                    //get file name
+                    $($(elem.children).children()).first().text())); });
+                    //Filter out wrong language and/or wrong episodes
+                    result = result.filter(function (elem) {
+                        return elem.language.indexOf(language) != -1;
+                    });
+                    //Wrap result
+                    var wrapper = new result_wrapper_1.ResultWrapper(titleMatch, uri, result);
+                    //Complete observer
+                    observer.next(wrapper);
+                    observer.complete();
+                }).fail(function (e) { observer.error({ message: uri }); });
+            }).fail(function (e) { observer.error({ message: uri }); });
+        });
+        return observer;
+    };
     SubtitleService.prototype.mapSeasonToText = function (season) {
         switch (season) {
-            case 1: return "first";
-            case 2: return "second";
-            case 3: return "third";
-            case 4: return "fourth";
-            case 5: return "fifth";
-            case 6: return "sixth";
-            case 7: return "seventh";
-            case 8: return "eighth";
-            case 9: return "ninth";
-            case 10: return "tenth";
-            case 11: return "eleventh";
-            case 12: return "twelfth";
-            case 13: return "thirteenth";
-            case 14: return "fourteenth";
-            case 15: return "fifteenth";
-            case 16: return "sixteenth";
-            case 17: return "seventeenth";
-            case 18: return "eighteenth";
-            case 19: return "nineteenth";
+            case 1: return "First";
+            case 2: return "Second";
+            case 3: return "Third";
+            case 4: return "Fourth";
+            case 5: return "Fifth";
+            case 6: return "Sixth";
+            case 7: return "Seventh";
+            case 8: return "Eighth";
+            case 9: return "Ninth";
+            case 10: return "Tenth";
+            case 11: return "Eleventh";
+            case 12: return "Twelfth";
+            case 13: return "Thirteenth";
+            case 14: return "Fourteenth";
+            case 15: return "Fifteenth";
+            case 16: return "Sixteenth";
+            case 17: return "Seventeenth";
+            case 18: return "Eighteenth";
+            case 19: return "Nineteenth";
             default: return "ERROR SEASON NUMBER TOO LARGE";
         }
     };

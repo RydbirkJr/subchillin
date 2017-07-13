@@ -16,104 +16,44 @@ export class SubtitleService {
   public getSeriesSubtitles(series: string, season: number, episode: number, language: string): Observable<ResultWrapper> {
     // Step 1: create correct url
     // Step 1a: replace spaces with dash
-    let seriesMapped = series.split(' ').join('-');
+    //let seriesMapped = series.split(' ').join('-');
 
     // Step 1b: Switch numbers with string representation of numbers
     let seasonNumberText = this.mapSeasonToText(season);
+    let titleMatch = series + ' - ' + seasonNumberText + ' Season';
 
+    console.log(titleMatch);
     // Step 1c: Create episode code
     let episodeCode = 'S' + ('00' + season).slice(-2) + 'E' + ('00' + episode).slice(-2);
 
-    // Step 2: Scrape site
-    let uri = BASE_URL + "subtitles/" + seriesMapped + "-" + seasonNumberText + "-season";
-
-    //Make request to subscene
+    //Create result observer
     let observer = new Observable<ResultWrapper>(observer => {
+      this.findSubtitles(series, titleMatch, language).subscribe(data => {
+        data.subtitles = data
+          .subtitles
+          .filter(elem => elem.fileName.indexOf(episodeCode) != -1);
 
-      $.get(uri).promise().then(resp => {
-        let result = Array<Subtitle>();
-
-        let elements = $(resp)
-          .find('.a1')
-          .map((index,elem) => result.push(
-            //get path
-            new Subtitle($(elem.children).attr('href'),
-            //get language
-            $($(elem.children).children()).last().text(),
-            //get file name
-            $($(elem.children).children()).first().text()
-            )
-          )
-        );
-
-        //Filter out wrong language and/or wrong episodes
-        result = result.filter(elem =>
-          elem.fileName.indexOf(episodeCode) != -1
-          && elem.language.indexOf(language) != -1
-        );
-        //Wrap result
-        let wrapper = new ResultWrapper(series + ' ' + episodeCode, uri, result);
-
-        //Complete observer
-        observer.next(wrapper);
+        observer.next(data);
         observer.complete();
-      }).fail(e => {observer.error({message: uri})});
+      }, err => {
+        observer.error(err);
+      });
     });
 
     return observer;
   }
 
   public getMovieSubtitles(movie: string, language: string): Observable<ResultWrapper>{
-    //Prepare title for search
-
-    let uri = BASE_URL + "subtitles/title?q=" + movie;
 
     //Create result observer
     let observer = new Observable<ResultWrapper>(observer => {
-      $.get(uri).promise().then(resp => {
-
-        let result = $(resp)
-          .find('.title')
-          .find('a')
-          .filter((index, elem) => elem.innerText.indexOf(movie) != -1);
-
-          if(result.length == 0){
-            observer.error({message: uri});
-            return;
-          }
-
-          uri = BASE_URL + result.first().attr('href');
-
-          $.get(uri).promise().then(resp => {
-            let result = Array<Subtitle>();
-
-            let elements = $(resp)
-              .find('.a1')
-              .map((index,elem) => result.push(
-                //get path
-                new Subtitle($(elem.children).attr('href'),
-                //get language
-                $($(elem.children).children()).last().text(),
-                //get file name
-                $($(elem.children).children()).first().text()
-                )
-              )
-            );
-
-            //Filter out wrong language and/or wrong episodes
-            result = result.filter(elem =>
-              elem.language.indexOf(language) != -1
-            );
-            //Wrap result
-            let wrapper = new ResultWrapper(movie, uri, result);
-
-            //Complete observer
-            observer.next(wrapper);
-            observer.complete();
-          }).fail(e => {observer.error({message: uri})});
-
-      }).fail(e => {observer.error({message: uri})});
-    })
+      this.findSubtitles(movie, movie, language).subscribe(data => {
+        observer.next(data);
+        observer.complete();
+      }, err => {
+        observer.error(err);
+      });
+    });
 
     return observer;
   }
@@ -169,27 +109,80 @@ export class SubtitleService {
     return observer;
   }
 
+  private findSubtitles(title: string, titleMatch: string, language: string): Observable<ResultWrapper> {
+    let uri = BASE_URL + "subtitles/title?q=" + title;
+
+    //Create result observer
+    let observer = new Observable<ResultWrapper>(observer => {
+      $.get(uri).promise().then(resp => {
+        console.log(uri);
+        let result = $(resp)
+          .find('.title')
+          .find('a')
+          .filter((index, elem) => elem.innerText.indexOf(titleMatch) != -1);
+
+          if(result.length == 0){
+            observer.error({message: uri});
+            return;
+          }
+
+          uri = BASE_URL + result.first().attr('href');
+          console.log(uri);
+          $.get(uri).promise().then(resp => {
+            let result = Array<Subtitle>();
+
+            let elements = $(resp)
+              .find('.a1')
+              .map((index,elem) => result.push(
+                //get path
+                new Subtitle($(elem.children).attr('href'),
+                //get language
+                $($(elem.children).children()).last().text(),
+                //get file name
+                $($(elem.children).children()).first().text()
+                )
+              )
+            );
+
+            //Filter out wrong language and/or wrong episodes
+            result = result.filter(elem =>
+              elem.language.indexOf(language) != -1
+            );
+            //Wrap result
+            let wrapper = new ResultWrapper(titleMatch, uri, result);
+
+            //Complete observer
+            observer.next(wrapper);
+            observer.complete();
+          }).fail(e => {observer.error({message: uri})});
+
+      }).fail(e => {observer.error({message: uri})});
+    })
+
+    return observer;
+  }
+
   private mapSeasonToText(season: number) : string {
     switch(season){
-      case 1: return "first";
-      case 2: return "second";
-      case 3: return "third";
-      case 4: return "fourth";
-      case 5: return "fifth";
-      case 6: return "sixth";
-      case 7: return "seventh";
-      case 8: return "eighth";
-      case 9: return "ninth";
-      case 10: return "tenth";
-      case 11: return "eleventh";
-      case 12: return "twelfth";
-      case 13: return "thirteenth";
-      case 14: return "fourteenth";
-      case 15: return "fifteenth";
-      case 16: return "sixteenth";
-      case 17: return "seventeenth";
-      case 18: return "eighteenth";
-      case 19: return "nineteenth";
+      case 1: return "First";
+      case 2: return "Second";
+      case 3: return "Third";
+      case 4: return "Fourth";
+      case 5: return "Fifth";
+      case 6: return "Sixth";
+      case 7: return "Seventh";
+      case 8: return "Eighth";
+      case 9: return "Ninth";
+      case 10: return "Tenth";
+      case 11: return "Eleventh";
+      case 12: return "Twelfth";
+      case 13: return "Thirteenth";
+      case 14: return "Fourteenth";
+      case 15: return "Fifteenth";
+      case 16: return "Sixteenth";
+      case 17: return "Seventeenth";
+      case 18: return "Eighteenth";
+      case 19: return "Nineteenth";
       default: return "ERROR SEASON NUMBER TOO LARGE";
     }
   }
